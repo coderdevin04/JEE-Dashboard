@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>JEE Progress Tracker</title>
+  <style>
+    :root {
+      --bg: #1e293b;
+      --card-bg: #0f172a;
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent: #4facfe;
+      --accent-hover: #3182ce;
+      --border: #334155;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+      --header-gradient: linear-gradient(90deg, #4facfe, #00f2fe);
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f7fb;
+      --card-bg: #ffffff;
+      --text: #1a202c;
+      --text-secondary: #4a5568;
+      --border: #e2e8f0;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --header-gradient: linear-gradient(90deg, #4facfe, #00f2fe);
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding-bottom: 20px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    header {
+      padding: 16px 20px;
+      background: var(--header-gradient);
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .theme-toggle, .global-reset {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: white;
+      font-weight: 500;
+      transition: background 0.3s, transform 0.2s;
+      white-space: nowrap;
+    }
+
+    .theme-toggle:hover, .global-reset:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    .theme-toggle:active, .global-reset:active {
+      transform: translateY(0);
+    }
+
+    .dashboard {
+      padding: 20px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      margin: 16px 16px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .dashboard h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    canvas {
+      max-width: 100%;
+      height: 200px;
+      display: block;
+      margin: 0 auto;
+      background: transparent;
+      border-radius: 8px;
+    }
+
+    .subjects-container {
+      padding: 0 16px;
+    }
+
+    .subject {
+      background: var(--card-bg);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+
+    .subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .subject-header:hover {
+      background: rgba(79, 172, 254, 0.05);
+    }
+
+    .subject-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .subject-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .reset-btn {
+      background: var(--danger);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .reset-btn:hover {
+      background: var(--danger-hover);
+      transform: translateY(-2px);
+    }
+
+    .reset-btn:active {
+      transform: translateY(0);
+    }
+
+    .subject-toggle {
+      width: 26px;
+      height: 26px;
+      background: var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-size: 14px;
+      transition: transform 0.3s, background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .subject-toggle:hover {
+      background: var(--accent);
+    }
+
+    .subject[data-expanded="false"] .subject-toggle {
+      transform: rotate(0deg);
+    }
+
+    .subject[data-expanded="true"] .subject-toggle {
+      transform: rotate(180deg);
+    }
+
+    .subject-content {
+      padding: 0 16px 16px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-in-out;
+    }
+
+    .subject[data-expanded="true"] .subject-content {
+      max-height: 2000px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    th, td {
+      padding: 12px 6px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      min-width: 52px;
+      width: 52px;
+      vertical-align: middle;
+    }
+    
+    th:first-child, td:first-child {
+      width: auto;
+      min-width: 160px;
+    }
+
+    thead th {
+      background: rgba(79, 172, 254, 0.1);
+      color: var(--text);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    th:first-child, td:first-child {
+      text-align: left;
+      padding-left: 12px;
+      font-weight: 500;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(79, 172, 254, 0.08);
+    }
+
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      transform: scale(1.05);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    input[type="checkbox"]:hover {
+      transform: scale(1.15);
+    }
+
+    .pyq-header {
+      background: rgba(79, 172, 254, 0.15);
+    }
+
+    .pyq-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 4px 6px !important;
+      font-weight: 500;
+    }
+
+    thead tr:nth-child(2) th {
+      padding: 4px 6px;
+      font-size: 11px;
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 480px) {
+      header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 12px;
+        text-align: center;
+      }
+      .header-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .theme-toggle, .global-reset {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+      .subject-header {
+        padding: 12px;
+      }
+      .subject-header h2 {
+        font-size: 16px;
+      }
+      .reset-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      .subject-actions {
+        gap: 8px;
+      }
+      th, td {
+        padding: 10px 5px;
+        font-size: 13px;
+      }
+      th:first-child, td:first-child {
+        min-width: 130px;
+      }
+      canvas {
+        height: 180px;
+      }
+      .subject-toggle {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>JEE Preparation Dashboard</span>
+    <div class="header-actions">
+      <button class="global-reset" id="globalReset" aria-label="Reset all progress">🔄 Reset All</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light mode">🌙 Theme</button>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <h3>Overall Progress</h3>
+    <canvas id="progressChart" height="200"></canvas>
+  </div>
+
+  <div class="subjects-container" id="subjects"></div>
+
+  <script>
+    /* --------- SYLLABUS --------- */
+    const syllabus = {
+      Physics: [
+        "Physics and Measurement", "Kinematics", "Laws of Motion", "Work, Energy and Power",
+        "Rotational Motion", "Gravitation", "Properties of Solids and Liquids", "Thermodynamics",
+        "Kinetic Theory of Gases", "Oscillations and Waves", "Electrostatics", "Current Electricity",
+        "Magnetic Effects of Current and Magnetism", "Electromagnetic Induction and Alternating Currents",
+        "Electromagnetic Waves", "Optics", "Dual Nature of Matter and Radiation", "Atoms and Nuclei",
+        "Electronic Devices", "Communication Systems"
+      ],
+      Chemistry: [
+        "Some Basic Concepts in Chemistry", "States of Matter", "Atomic Structure", "Chemical Bonding and Molecular Structure",
+        "Chemical Thermodynamics", "Solutions", "Equilibrium", "Redox Reactions and Electrochemistry",
+        "Chemical Kinetics", "Surface Chemistry", "Classification of Elements and Periodicity",
+        "General Principles and Processes of Isolation of Metals", "Hydrogen", "s-Block Elements",
+        "p-Block Elements", "d- and f-Block Elements", "Coordination Compounds", "Environmental Chemistry",
+        "Purification and Characterisation of Organic Compounds", "Some Basic Principles of Organic Chemistry",
+        "Hydrocarbons", "Organic Compounds Containing Halogens", "Organic Compounds Containing Oxygen",
+        "Organic Compounds Containing Nitrogen", "Polymers", "Biomolecules", "Chemistry in Everyday Life",
+        "Principles Related to Practical Chemistry"
+      ],
+      Mathematics: [
+        "Sets, Relations and Functions", "Complex Numbers and Quadratic Equations", "Matrices and Determinants",
+        "Permutations and Combinations", "Mathematical Induction", "Binomial Theorem", "Sequences and Series",
+        "Limit, Continuity and Differentiability", "Integral Calculus", "Differential Equations",
+        "Coordinate Geometry", "Three Dimensional Geometry", "Vector Algebra", "Statistics and Probability",
+        "Trigonometry"
+      ]
+    };
+
+    // 6 PYQ columns: 21–26
+    const COLUMNS = [
+      "lecture", "revision",
+      "pyq21", "pyq22", "pyq23", "pyq24", "pyq25", "pyq26",
+      "formula"
+    ];
+
+    // Safe data load
+    let data;
+    try {
+      data = JSON.parse(localStorage.getItem("jeeTracker")) || {};
+    } catch (e) {
+      console.warn("Corrupted localStorage, resetting");
+      data = {};
+      localStorage.removeItem("jeeTracker");
+    }
+
+    // Theme init
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.body.setAttribute("data-theme", savedTheme);
+    updateThemeButton(savedTheme);
+
+    function updateThemeButton(theme) {
+      const btn = document.getElementById("themeToggle");
+      btn.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+    }
+
+    /* --------- INIT --------- */
+    function init() {
+      const root = document.getElementById("subjects");
+      root.innerHTML = "";
+      for (let subject in syllabus) {
+        root.appendChild(renderSubject(subject));
+      }
+      drawGraph();
+
+      // Restore expanded state
+      Object.keys(syllabus).forEach(s => {
+        const isExpanded = localStorage.getItem(`subject-${s}-expanded`) === "true";
+        const el = document.querySelector(`.subject[data-subject="${s}"]`);
+        if (el) el.setAttribute("data-expanded", String(isExpanded));
+      });
+    }
+
+    function renderSubject(subject) {
+      const div = document.createElement("div");
+      div.className = "subject";
+      div.setAttribute("data-subject", subject);
+      div.setAttribute("data-expanded", "false");
+      div.innerHTML = `
+        <div class="subject-header" onclick="toggleSubject('${subject}')">
+          <h2>${subject}</h2>
+          <div class="subject-actions">
+            <button class="reset-btn" onclick="resetSubject('${subject}'); event.stopPropagation();">Reset</button>
+            <div class="subject-toggle">▼</div>
+          </div>
+        </div>
+        <div class="subject-content">
+          <table>
+            <thead>
+              <tr>
+                <th>Chapter</th>
+                <th>Lecture</th>
+                <th>Revision</th>
+                <th colspan="6" class="pyq-header">Previous Year Questions</th>
+                <th>Formula</th>
+              </tr>
+              <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th class="pyq-label">'21</th>
+                <th class="pyq-label">'22</th>
+                <th class="pyq-label">'23</th>
+                <th class="pyq-label">'24</th>
+                <th class="pyq-label">'25</th>
+                <th class="pyq-label">'26</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${syllabus[subject].map(ch => renderRow(subject, ch)).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+      return div;
+    }
+
+    function renderRow(subject, chapter) {
+      if (!data[subject]) data[subject] = {};
+      if (!data[subject][chapter]) {
+        data[subject][chapter] = {};
+        COLUMNS.forEach(c => data[subject][chapter][c] = false);
+      }
+      return `
+        <tr>
+          <td>${chapter}</td>
+          ${COLUMNS.map(c =>
+            `<td><input type="checkbox"
+              ${data[subject][chapter][c] ? "checked" : ""}
+              onchange="toggle('${subject}','${chapter}','${c}')"></td>`
+          ).join("")}
+        </tr>
+      `;
+    }
+
+    /* --------- DATA --------- */
+    function toggle(subject, chapter, col) {
+      data[subject][chapter][col] = !data[subject][chapter][col];
+      localStorage.setItem("jeeTracker", JSON.stringify(data));
+      drawGraph();
+    }
+
+    function resetSubject(subject) {
+      if (confirm(`Reset all progress for ${subject}? This cannot be undone.`)) {
+        delete data[subject];
+        localStorage.setItem("jeeTracker", JSON.stringify(data));
+        init();
+      }
+    }
+
+    function toggleSubject(subject) {
+      const el = document.querySelector(`.subject[data-subject="${subject}"]`);
+      const isExpanded = el.getAttribute("data-expanded") === "true";
+      el.setAttribute("data-expanded", String(!isExpanded));
+      localStorage.setItem(`subject-${subject}-expanded`, String(!isExpanded));
+    }
+
+    /* --------- GLOBAL RESET --------- */
+    document.getElementById("globalReset").addEventListener("click", function () {
+      if (confirm("Reset ALL progress? This will clear everything.")) {
+        localStorage.removeItem("jeeTracker");
+        data = {};
+        init();
+      }
+    });
+
+    /* --------- THEME TOGGLE --------- */
+    document.getElementById("themeToggle").addEventListener("click", function () {
+      const current = document.body.getAttribute("data-theme");
+      const newTheme = current === "dark" ? "light" : "dark";
+      document.body.setAttribute("data-theme", newTheme);
+      updateThemeButton(newTheme);
+      localStorage.setItem("theme", newTheme);
+      drawGraph(); // Redraw graph with new theme colors
+    });
+
+    /* --------- PROGRESS --------- */
+    function subjectProgress(subject) {
+      let total = 0, done = 0;
+      syllabus[subject].forEach(ch => {
+        COLUMNS.forEach(c => {
+          total++;
+          if (data[subject]?.[ch]?.[c]) done++;
+        });
+      });
+      return total > 0 ? Math.round((done / total) * 100) : 0;
+    }
+
+    function drawGraph() {
+      const canvas = document.getElementById("progressChart");
+      const container = canvas.parentElement;
+      const ctx = canvas.getContext("2d");
+      
+      // Use container width, not canvas width to prevent shrinking
+      const width = container.offsetWidth - 40; // Subtract padding
+      const height = 200;
+      
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.scale(dpr, dpr);
+
+      // Clear entire canvas
+      ctx.clearRect(0, 0, width, height);
+
+      const subjects = Object.keys(syllabus);
+      const barWidth = 60;
+      const spacing = Math.max(20, (width - subjects.length * barWidth) / (subjects.length + 1));
+      const maxBarHeight = 140; // Fixed maximum height for 100%
+      
+      // Get theme-specific colors
+      const isDark = document.body.getAttribute("data-theme") === "dark";
+      const textColor = isDark ? "#ffffff" : "#1a202c";
+      const percentColor = isDark ? "#00f2fe" : "#4facfe";
+
+      subjects.forEach((s, i) => {
+        const x = spacing + i * (barWidth + spacing);
+        const percent = subjectProgress(s);
+        const height = (percent / 100) * maxBarHeight; // Scale linearly from 0 to maxBarHeight
+        
+        // Draw bar with gradient
+        const gradient = ctx.createLinearGradient(x, 180 - height, x, 180);
+        gradient.addColorStop(0, "#4facfe");
+        gradient.addColorStop(1, "#00f2fe");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, 180 - height, barWidth, height);
+
+        // Draw subject label
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(s, x + barWidth / 2, 195);
+        
+        // Draw percentage
+        ctx.fillStyle = percentColor;
+        ctx.font = "bold 14px Arial";
+        if (height > 15) {
+          ctx.fillText(`${percent}%`, x + barWidth / 2, 175 - height);
+        } else {
+          ctx.fillText(`${percent}%`, x + barWidth / 2, 165);
+        }
+      });
+    }
+
+    // Init
+    window.addEventListener("load", init);
+
+    // Resize
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(drawGraph, 250);
+    });
+  </script>
+</body>
+</html>
